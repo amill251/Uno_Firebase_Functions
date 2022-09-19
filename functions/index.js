@@ -1,18 +1,26 @@
 const functions = require("firebase-functions");
-// Create and Deploy Your First Cloud Functions
-// https://firebase.google.com/docs/functions/write-firebase-functions
 
-exports.helloWorld = functions.https.onRequest((request, response) => {
-  functions.logger.info("Hello logs!", {structuredData: true});
-  response.send("Hello from Firebase!");
+exports.createNewGame = functions.https.onCall((data, context) => {
+
+  return data;
 });
 
-exports.millerFunction = functions.https.onRequest((request, response) => {
-    functions.logger.info("Hello logs!", {structuredData: true});
-    response.send("Hello from Miller Function!");
-  });
+exports.joinGame = functions.https.onCall((data, context) => {
 
-exports.callFunction = functions.https.onCall((data, context) => {
-    console.log(data);
-    return data;
-  });
+  return data;
+});
+
+exports.drawCard = functions.https.onCall((data, context) => {
+
+  return data;
+});
+
+exports.playCard = functions.https.onCall((data, context) => {
+
+  return data;
+});
+
+exports.leaveGame = functions.https.onCall((data, context) => {
+
+  return data;
+});
