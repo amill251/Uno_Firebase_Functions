@@ -1,8 +1,8 @@
 const functions = require("firebase-functions");
 
 exports.createNewGame = functions.https.onCall((data, context) => {
-
-  return data;
+  let response = 'This is the response'
+  return response;
 });
 
 exports.joinGame = functions.https.onCall((data, context) => {
