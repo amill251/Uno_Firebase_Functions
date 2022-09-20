@@ -1,4 +1,6 @@
 const functions = require("firebase-functions");
+const admin = require("firebase-admin")
+admin.initializeApp()
 
 exports.createNewGame = functions.https.onCall((data, context) => {
   try {
@@ -42,7 +44,7 @@ exports.createNewGame = functions.https.onCall((data, context) => {
   
     for (color in colors) {
         for (let i = 0; i <=11; i++) {
-            var editedColor = color
+            var editedColor = colors[color]
             var content = i.toString()
             if (i == 10) {
                 content = "S"
@@ -51,7 +53,7 @@ exports.createNewGame = functions.https.onCall((data, context) => {
                 editedColor = ""
             }
             let Card = {
-              "id": content + color,
+              "id": content + colors[color],
               "content": content,
               "color": editedColor
             }
@@ -67,8 +69,8 @@ exports.createNewGame = functions.https.onCall((data, context) => {
     var guestHand= []
   
     for (let i = 1; i <= 7; i++) {
-        hostHand.push(cards.splice(-1))
-        guestHand.push(cards.splice(-1))
+        hostHand.push(cards.pop())
+        guestHand.push(cards.pop())
     }
   
     // Sort hands by color then content
@@ -87,9 +89,9 @@ exports.createNewGame = functions.https.onCall((data, context) => {
   
     // Does not allow game to start with +4 and adds card from deck to discard game
     while(cards[cards.length - 1].content == "+4") {
-        cards.shuffle()
+        cards = shuffle(cards)
     }
-    discardPile.push(cards.splice(-1))
+    discardPile.push(cards.pop())
   
     // game.value = game.value.copy(cards = cards, hostHand = hostHand, guestHand = guestHand, discardPile = discardPile)
   
@@ -97,8 +99,16 @@ exports.createNewGame = functions.https.onCall((data, context) => {
     Game["hostHand"] = hostHand;
     Game["guestHand"] = guestHand;
     Game["discardPile"] = discardPile;
-    Game["title"] = data;
-    console.log(Game)
+    Game["title"] = data.text;
+    Game["hostId"] = context.auth.uid;
+    console.log(data)
+  
+    let docRef = admin.firestore().collection("Games").doc();
+    console.log("Created the doc reference: " + docRef);
+    docRef.set(Game).then((response) => {
+      console.log(response);
+    });
+
     return Game;
   } catch(err) {
     console.log(err)
