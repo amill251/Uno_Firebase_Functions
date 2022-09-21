@@ -121,7 +121,7 @@ exports.createNewGame = functions.https.onCall((data, context) => {
 exports.joinGame = functions.https.onCall((data, context) => {
   try {
     let docRef = admin.firestore().collection("Games").doc(data.hostId);
-    docRef.update({'guestId' : data.guestId})
+    docRef.update({'guestId' : data.guestId, 'gameStarted' : true})
     .then((response) => {
       return response;
     });
