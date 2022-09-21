@@ -101,17 +101,14 @@ exports.createNewGame = functions.https.onCall((data, context) => {
     Game["discardPile"] = discardPile;
     Game["title"] = data.gameTitle;
     Game["hostId"] = context.auth.uid;
-    console.log(data)
   
     let docRef = admin.firestore().collection("Games").doc(Game["hostId"]);
-    console.log("Created the doc reference: " + docRef);
     docRef.set(Game).then((response) => {
       console.log(response);
     });
 
     return Game;
   } catch(err) {
-    console.log(err)
     console.error(err)
     return err;
   }
@@ -142,6 +139,18 @@ exports.playCard = functions.https.onCall((data, context) => {
 });
 
 exports.leaveGame = functions.https.onCall((data, context) => {
-
+  try {
+    let docRef = admin.firestore().collection("Games").doc(data.gameId);
+    let game = docRef.get();
+    docRef.update({'gameOver' : true})
+    .then(() => {
+      docRef.delete().then((response) => {
+        return response
+      })
+    });
+  } catch(err) {
+    console.error(err);
+    return err;
+  }
   return data;
 });
