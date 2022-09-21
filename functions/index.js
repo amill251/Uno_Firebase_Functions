@@ -20,7 +20,7 @@ function shuffle(array) {
   return array;
 }
 
-function findValidHostHand(hostHand) {
+function findValidHostHand(game, hostHand) {
   console.info("HostHand: " + hostHand)
   console.info("HostMove: " + game.hostsMove)
   if (hostHand && game.hostsMove) {
@@ -150,7 +150,7 @@ exports.drawCard = functions.https.onCall(async (data, context) => {
   let playingHand;
   let opponentHand;
 
-  let validHostMove = findValidHostHand(hostHand)
+  let validHostMove = findValidHostHand(game, hostHand)
 
   console.info(validHostMove)
 
@@ -231,10 +231,11 @@ exports.drawCard = functions.https.onCall(async (data, context) => {
 });
 
 exports.playCard = functions.https.onCall(async (data, context) => {
-
+  console.info("Running the playcard function");
   let docRef = admin.firestore().collection("Games").doc(data.gameId);
   let snapshot = await docRef.get();
   let game = snapshot.data();
+  let card = data.card;
   console.info("Document data: " + game)
   let hostHand = data.hostHand;
   let plusFourColor = data.plusFourColor;
@@ -242,7 +243,7 @@ exports.playCard = functions.https.onCall(async (data, context) => {
   let playingHand;
   let opponentHand;
 
-  let validHostMove = findValidHostHand(hostHand)
+  let validHostMove = findValidHostHand(game, hostHand)
 
   console.info(validHostMove)
 
