@@ -277,7 +277,7 @@ exports.playCard = functions.https.onCall(async (data, context) => {
             }
           });
       } else if (card.content == game.discardPile[0].content || card.color == game.discardPile[0].color) {
-          playingHand.findIndex(x => x.id == card.id)
+          playingHand.splice(playingHand.findIndex(x => x.id == card.id),1)
           game.discardPile.unshift(card)
           game.nextMove = !game.nextMove
 
