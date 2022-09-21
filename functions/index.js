@@ -103,7 +103,7 @@ exports.createNewGame = functions.https.onCall((data, context) => {
     Game["hostId"] = context.auth.uid;
     console.log(data)
   
-    let docRef = admin.firestore().collection("Games").doc(Game[hostId]);
+    let docRef = admin.firestore().collection("Games").doc(Game["hostId"]);
     console.log("Created the doc reference: " + docRef);
     docRef.set(Game).then((response) => {
       console.log(response);
