@@ -99,7 +99,7 @@ exports.createNewGame = functions.https.onCall((data, context) => {
     Game["hostHand"] = hostHand;
     Game["guestHand"] = guestHand;
     Game["discardPile"] = discardPile;
-    Game["title"] = data.gameId;
+    Game["title"] = data.gameTitle;
     Game["hostId"] = context.auth.uid;
     console.log(data)
   
