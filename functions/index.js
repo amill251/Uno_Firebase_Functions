@@ -2,6 +2,24 @@ const functions = require("firebase-functions");
 const admin = require("firebase-admin")
 admin.initializeApp()
 
+function shuffle(array) {
+  let currentIndex = array.length,  randomIndex;
+
+  // While there remain elements to shuffle.
+  while (currentIndex != 0) {
+
+    // Pick a remaining element.
+    randomIndex = Math.floor(Math.random() * currentIndex);
+    currentIndex--;
+
+    // And swap it with the current element.
+    [array[currentIndex], array[randomIndex]] = [
+      array[randomIndex], array[currentIndex]];
+  }
+
+  return array;
+}
+
 exports.createNewGame = functions.https.onCall((data, context) => {
   try {
     let Game = {    
@@ -17,24 +35,6 @@ exports.createNewGame = functions.https.onCall((data, context) => {
       "discardPile" : [],
       "hostHand" : [],
       "guestHand" : []
-    }
-  
-    function shuffle(array) {
-      let currentIndex = array.length,  randomIndex;
-    
-      // While there remain elements to shuffle.
-      while (currentIndex != 0) {
-    
-        // Pick a remaining element.
-        randomIndex = Math.floor(Math.random() * currentIndex);
-        currentIndex--;
-    
-        // And swap it with the current element.
-        [array[currentIndex], array[randomIndex]] = [
-          array[randomIndex], array[currentIndex]];
-      }
-    
-      return array;
     }
   
     let cards = [];
@@ -129,8 +129,98 @@ exports.joinGame = functions.https.onCall((data, context) => {
 });
 
 exports.drawCard = functions.https.onCall((data, context) => {
+  let docRef = admin.firestore().collection("Games").doc(data.gameId);
+  let game = docRef.get();
+  let hostHand = data.hostHand;
+  let plusFourColor = data.plusFourColor;
 
-  return data;
+  let playingHand;
+  let opponentHand;
+
+    function findValidHostHand(hostHand) {
+      if (hostHand && game.value.hostsMove) {
+        return true
+      } else if (!hostHand && !game.value.hostsMove) {
+        return false
+      } 
+  }
+
+  let validHostMove = findValidHostHand(hostHand)
+
+  if (validHostMove != null) {
+    if (validHostMove == true) {
+        playingHand = game.hostHand
+        opponentHand = game.guestHand
+    } else if (validHostMove == false) {
+        playingHand = game.guestHand
+        opponentHand = game.hostHand
+    }
+
+    let drawnCard
+
+    if (game.cards.length == 1) {
+        drawnCard = game.cards[0]
+        let placeholderCard = game.discardPile.shift()
+        game.cards.concat(game.discardPile)
+        game.discardPile = []
+        game.discardPile.push(placeholderCard)
+        game.cards.shuffle()
+    } else {
+        drawnCard = game.cards.pop()
+    }
+
+    if (drawnCard.content == "+4") {
+        var editedCard = drawnCard
+        editedCard.color = plusFourColor
+        game.discardPile.unshift(editedCard)
+
+        for(let i = 0; i <= 3; i++) {
+            if (!game.cards.length == 0) {
+                opponentHand.unshift(game.cards.pop())
+            }
+        }
+
+        game.hostsMove = !game.hostsMove
+        opponentHand.sort((card1, card2) => {
+          if(card1.color == card2.color) {
+            return card2.color - card1.color;
+      
+          } else {
+            return card2.content - card1.content;
+          }
+        });
+        game.nextMove = !game.nextMove
+        docRef.update(game)
+        return {"message" : "You drew and played a " + drawnCard.content}
+    } else if (drawnCard.content == game.value.discardPile[0].content || drawnCard.color == game.value.discardPile[0].color) {
+        game.discardPile.unshift(drawnCard)
+        if (drawnCard.content != "S") {
+            game.hostsMove = !game.hostsMove
+        }
+        game.nextMove = !game.nextMove
+        docRef.update(game)
+        return {"message" : "You drew and played a " + drawnCard.content + " of " + drawnCard.color}
+    } else {
+        playingHand.unshift(drawnCard)
+        game.hostsMove = !game.hostsMove
+        playingHand.sort((card1, card2) => {
+          if(card1.color == card2.color) {
+            return card2.color - card1.color;
+      
+          } else {
+            return card2.content - card1.content;
+          }
+        });
+        game.nextMove = !game.nextMove
+
+        docRef.update(game)
+        return {"message" : "You drew a " + drawnCard.content + " of " + drawnCard.color}
+    }
+
+    
+  } else {
+      return {"message" : R.string.wrongTurn}
+  }
 });
 
 exports.playCard = functions.https.onCall((data, context) => {
