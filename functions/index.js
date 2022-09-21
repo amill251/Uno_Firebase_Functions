@@ -20,6 +20,17 @@ function shuffle(array) {
   return array;
 }
 
+function findValidHostHand(game, hostHand) {
+  console.info("HostHand: " + hostHand)
+  console.info("HostMove: " + game.hostsMove)
+  if (hostHand && game.hostsMove) {
+    console.info("Returning true")
+    return true
+  } else if (!hostHand && !game.hostsMove) {
+    return false
+  } 
+}
+
 exports.createNewGame = functions.https.onCall((data, context) => {
   try {
     let Game = {    
@@ -139,18 +150,7 @@ exports.drawCard = functions.https.onCall(async (data, context) => {
   let playingHand;
   let opponentHand;
 
-    function findValidHostHand(hostHand) {
-      console.info("HostHand: " + hostHand)
-      console.info("HostMove: " + game.hostsMove)
-      if (hostHand && game.hostsMove) {
-        console.info("Returning true")
-        return true
-      } else if (!hostHand && !game.hostsMove) {
-        return false
-      } 
-  }
-
-  let validHostMove = findValidHostHand(hostHand)
+  let validHostMove = findValidHostHand(game, hostHand)
 
   console.info(validHostMove)
 
@@ -230,9 +230,87 @@ exports.drawCard = functions.https.onCall(async (data, context) => {
   }
 });
 
-exports.playCard = functions.https.onCall((data, context) => {
+exports.playCard = functions.https.onCall(async (data, context) => {
+  console.info("Running the playcard function");
+  let docRef = admin.firestore().collection("Games").doc(data.gameId);
+  let snapshot = await docRef.get();
+  let game = snapshot.data();
+  let card = data.card;
+  console.info("Document data: " + game)
+  let hostHand = data.hostHand;
+  let plusFourColor = data.plusFourColor;
 
-  return data;
+  let playingHand;
+  let opponentHand;
+
+  let validHostMove = findValidHostHand(game, hostHand)
+
+  console.info(validHostMove)
+
+  // Sets playing hand to host if true, guest if false
+  if (validHostMove != null) {
+      if (validHostMove == true) {
+          playingHand = game.hostHand
+          opponentHand = game.guestHand
+      } else if (validHostMove == false) {
+          playingHand = game.guestHand
+          opponentHand = game.hostHand
+      }
+
+      if (card.content == "+4") {
+          playingHand.splice(playingHand.findIndex(x => x.id == card.id),1)
+          var editedCard = card
+          editedCard.color = plusFourColor
+          game.discardPile.unshift(editedCard)
+
+          for(let i = 0; i <= 3; i++) {
+              opponentHand.unshift(game.cards.pop())
+          }
+
+          game.hostsMove = !game.hostsMove
+          opponentHand.sort((card1, card2) => {
+            if(card1.color == card2.color) {
+              return card2.color - card1.color;
+        
+            } else {
+              return card2.content - card1.content;
+            }
+          });
+      } else if (card.content == game.discardPile[0].content || card.color == game.discardPile[0].color) {
+          playingHand.splice(playingHand.findIndex(x => x.id == card.id),1)
+          game.discardPile.unshift(card)
+          game.nextMove = !game.nextMove
+
+          if (card.content != "S") {
+              game.hostsMove = !game.hostsMove
+          }
+          playingHand.sort((card1, card2) => {
+            if(card1.color == card2.color) {
+              return card2.color - card1.color;
+        
+            } else {
+              return card2.content - card1.content;
+            }
+          });
+      } else {
+          return {"message" : "Invalid move. Please play a card of the same color, same number, or a draw 4. Otherwise draw a card."}
+      }
+
+      if (playingHand.length == 0) {
+          game.gameOver
+
+          if (game.hostsMove) {
+              game.winner = game.hostId
+          } else {
+              game.winner = game.guestId
+          }
+      }
+      docRef.update(game)
+      return game
+
+  } else {
+    return {"message" : "It's not your turn, please wait for the other player."}
+  }
 });
 
 exports.leaveGame = functions.https.onCall((data, context) => {
