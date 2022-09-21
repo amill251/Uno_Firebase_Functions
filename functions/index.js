@@ -93,7 +93,7 @@ exports.createNewGame = functions.https.onCall((data, context) => {
     }
     discardPile.push(cards.pop())
   
-    // game.value = game.value.copy(cards = cards, hostHand = hostHand, guestHand = guestHand, discardPile = discardPile)
+    // game = game.copy(cards = cards, hostHand = hostHand, guestHand = guestHand, discardPile = discardPile)
   
     Game["cards"] = cards;
     Game["hostHand"] = hostHand;
@@ -128,9 +128,11 @@ exports.joinGame = functions.https.onCall((data, context) => {
   }
 });
 
-exports.drawCard = functions.https.onCall((data, context) => {
+exports.drawCard = functions.https.onCall(async (data, context) => {
   let docRef = admin.firestore().collection("Games").doc(data.gameId);
-  let game = docRef.get();
+  let snapshot = await docRef.get();
+  let game = snapshot.data();
+  console.info("Document data: " + game)
   let hostHand = data.hostHand;
   let plusFourColor = data.plusFourColor;
 
@@ -138,14 +140,19 @@ exports.drawCard = functions.https.onCall((data, context) => {
   let opponentHand;
 
     function findValidHostHand(hostHand) {
-      if (hostHand && game.value.hostsMove) {
+      console.info("HostHand: " + hostHand)
+      console.info("HostMove: " + game.hostsMove)
+      if (hostHand && game.hostsMove) {
+        console.info("Returning true")
         return true
-      } else if (!hostHand && !game.value.hostsMove) {
+      } else if (!hostHand && !game.hostsMove) {
         return false
       } 
   }
 
   let validHostMove = findValidHostHand(hostHand)
+
+  console.info(validHostMove)
 
   if (validHostMove != null) {
     if (validHostMove == true) {
@@ -192,7 +199,7 @@ exports.drawCard = functions.https.onCall((data, context) => {
         game.nextMove = !game.nextMove
         docRef.update(game)
         return {"message" : "You drew and played a " + drawnCard.content}
-    } else if (drawnCard.content == game.value.discardPile[0].content || drawnCard.color == game.value.discardPile[0].color) {
+    } else if (drawnCard.content == game.discardPile[0].content || drawnCard.color == game.discardPile[0].color) {
         game.discardPile.unshift(drawnCard)
         if (drawnCard.content != "S") {
             game.hostsMove = !game.hostsMove
@@ -219,7 +226,7 @@ exports.drawCard = functions.https.onCall((data, context) => {
 
     
   } else {
-      return {"message" : R.string.wrongTurn}
+      return {"message" : "It's not your turn, please wait for the other player."}
   }
 });
 
