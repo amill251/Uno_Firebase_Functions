@@ -99,11 +99,11 @@ exports.createNewGame = functions.https.onCall((data, context) => {
     Game["hostHand"] = hostHand;
     Game["guestHand"] = guestHand;
     Game["discardPile"] = discardPile;
-    Game["title"] = data.text;
+    Game["title"] = data.gameId;
     Game["hostId"] = context.auth.uid;
     console.log(data)
   
-    let docRef = admin.firestore().collection("Games").doc();
+    let docRef = admin.firestore().collection("Games").doc(Game[hostId]);
     console.log("Created the doc reference: " + docRef);
     docRef.set(Game).then((response) => {
       console.log(response);
@@ -119,8 +119,16 @@ exports.createNewGame = functions.https.onCall((data, context) => {
 });
 
 exports.joinGame = functions.https.onCall((data, context) => {
-
-  return data;
+  try {
+    let docRef = admin.firestore().collection("Games").doc(data.hostId);
+    docRef.update({'guestId' : data.guestId})
+    .then((response) => {
+      return response;
+    });
+  } catch(err) {
+    console.error(err);
+    return err;
+  }
 });
 
 exports.drawCard = functions.https.onCall((data, context) => {
